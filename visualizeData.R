@@ -16,34 +16,106 @@ source("./functions.R")
 # File structure to be found http://www.cde.ca.gov/ds/sd/sd/filesenr.asp
 # 
 
-# Note 1948-1969, 1970-1976, 1977-1980 only have county-level enrollment (no School-level data, no grades, no ethinicities)
-# 48-76 seperates gender, 77-80 only has total enrollment by county
-DT4869 <- read.table("./Data/CA/enr4869.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE); setDT(DT4869)
-DT7076 <- read.table("./Data/CA/enr7076.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE); setDT(DT7076)
-DT7780 <- read.table("./Data/CA/enr7780.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE); setDT(DT7780)
+# Note 1948-1969, 1970-1976, 1977-1980 only have county-level enrollment (no School-level data, no ethinicities)
+# 48-69 seperates grades, 48-76 seperates gender, 77-80 only has total enrollment by county without gender or grades
+df4869 <- read.table("./Data/CA/enr4869.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE)
+df7076 <- read.table("./Data/CA/enr7076.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE)
+df7780 <- read.table("./Data/CA/enr7780.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE)
 # School, Grade and Ethnicity factors start in 1981
-DT8192 <- read.table("./Data/CA/enr8192.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE); setDT(DT8192)
+df8192 <- read.table("./Data/CA/enr8192.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE)
 # Annual data files start in 1993
-DT9697 <- read.table("./Data/CA/ent1996-1997.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE); setDT(DT9697)
-DT0607 <- read.table("./Data/CA/men2006-2007.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE); setDT(DT0607)
-DT1617 <- read.table("./Data/CA/rol2016-2017.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE); setDT(DT1617)
-
+df9697 <- read.table("./Data/CA/ent1996-1997.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE)
+df0607 <- read.table("./Data/CA/men2006-2007.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE)
+df1617 <- read.table("./Data/CA/rol2016-2017.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE)
 # Make full CDS_CODE visible
 options(scipen = 16) 
-# Change CDS_CODE type from double to string for precision
-DT8192 <- DT8192[, CDS_CODE:=as.character(CDS_CODE)]
-DT9697 <- DT9697[, CDS_CODE:=as.character(CDS_CODE)]
-DT0607 <- DT0607[, CDS_CODE:=as.character(CDS_CODE)]
-DT1617 <- DT1617[, CDS_CODE:=as.character(CDS_CODE)]
+
+# Check head, str, dim for each df
+head(df8192)
+str(df4869)
+dim(df4869)
+
+# =================== Part 1a: Plot enrollments by grade ==================================
+# with ethnic fill for four decades 8687, 9697, 0607, 1617
+
+df8687 <- df8192[ which(df8192$YEAR == 8687),] # Select single year from 8192 df
 
 # Try an individual school (is)
 cds1 = 19647331933043 # "Benjamin Franklin Senior High"
 cds2 = 19647331932540 # "Eagle Rock High/Eagle Rock Junior Senior High"
-is1617 <- subset(DT1617, CDS_CODE == cds2, select = c(ETHNIC, GENDER, GR_9, GR_10, GR_11, GR_12, ENR_TOTAL))
-is0607 <- subset(DT0607, CDS_CODE == cds2, select = c(ETHNIC, GENDER, GR_9, GR_10, GR_11, GR_12, ENR_TOTAL))
-is9697 <- subset(DT9697, CDS_CODE == cds2, select = c(ETHNIC, GENDER, GR_9, GR_10, GR_11, GR_12, ENR_TOTAL))
-is8687 <- subset(DT8192, CDS_CODE == cds2 & YEAR == 8687, select = c(ETHNIC, GENDER, GR_9, GR_10, GR_11, GR_12, ENR_TOTAL))
+is1617 <- subset(df1617, CDS_CODE == cds2, select = c(ETHNIC, GENDER, GR_9, GR_10, GR_11, GR_12, ENR_TOTAL))
+is0607 <- subset(df0607, CDS_CODE == cds2, select = c(ETHNIC, GENDER, GR_9, GR_10, GR_11, GR_12, ENR_TOTAL))
+is9697 <- subset(df9697, CDS_CODE == cds2, select = c(ETHNIC, GENDER, GR_9, GR_10, GR_11, GR_12, ENR_TOTAL))
+is8687 <- subset(df8192, CDS_CODE == cds2 & YEAR == 8687, select = c(ETHNIC, GENDER, GR_9, GR_10, GR_11, GR_12, ENR_TOTAL))
 levels(is8687$ETHNIC) = c(NA, NA, "2", "6", "4", "5", "1", "3", "7")
+
+# Plot enrollments by ethnicity with gender fill
+is = is8687 # Set year to visualize (1617, 0607, 9697, 8687)
+ggplot(data = is) +
+  geom_bar(mapping = aes(x = ETHNIC, y = ENR_TOTAL, fill = GENDER), stat = "identity")
+
+# Melt the grade variables and provide col names
+tdyis1617 <- melt(is1617, id=c("ETHNIC", "GENDER"))
+tdyis0607 <- melt(is0607, id=c("ETHNIC", "GENDER"))
+tdyis9697 <- melt(is9697, id=c("ETHNIC", "GENDER"))
+tdyis8687 <- melt(is8687, id=c("ETHNIC", "GENDER"))
+
+# Make ETHNIC a factor and name the levels
+tdyis1617$ETHNIC <- as.factor(tdyis1617$ETHNIC)
+levels(tdyis1617$ETHNIC) = c("American Indian", "Asian", "Pacific Islander", "Filipino", "Hispanic", "African American", "White", "Two or more")
+tdyis0607$ETHNIC <- as.factor(tdyis0607$ETHNIC)
+levels(tdyis0607$ETHNIC) = c("American Indian", "Asian", "Pacific Islander", "Filipino", "Hispanic", "African American", "White", "Multiple or No Response") 
+tdyis9697$ETHNIC <- as.factor(tdyis9697$ETHNIC)
+levels(tdyis9697$ETHNIC) = c("American Indian", "Asian", "Pacific Islander", "Filipino", "Hispanic", "African American", "White") 
+tdyis8687$ETHNIC <- as.factor(tdyis8687$ETHNIC)
+levels(tdyis8687$ETHNIC) = c(NA, NA, "Asian", "African American", "Filipino", "Hispanic", "American Indian", "Pacific Islander", "White") 
+
+# adjust which decade to visualize 1617, 0607, 9697, 8687
+tdyis <- tdyis9697 
+setnames(tdyis, c("variable", "value"), c("GRADE", "ENROLLMENT"))
+ggplot(data = tdyis) +
+  geom_bar(mapping = aes(x = GRADE, y = ENROLLMENT, fill = ETHNIC, order = ETHNIC), stat = "identity") +
+  facet_grid(GENDER ~ .) +
+  ggtitle("Eagle Rock HS Enrollment by Grade, Ethnicity, and Gender 1986-1987")
+
+
+
+; setDT(DT4869); setDT(DT7076); setDT(DT7780); setDT(DT8192); setDT(DT9697); setDT(DT0607); setDT(DT1617)
+
+
+# Note 1948-1969, 1970-1976, 1977-1980 only have county-level enrollment (no School-level data, no grades, no ethinicities)
+# 48-76 seperates gender, 77-80 only has total enrollment by county
+df4869 <- read.table("./Data/CA/enr4869.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE); setDT(DT4869)
+df7076 <- read.table("./Data/CA/enr7076.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE); setDT(DT7076)
+df7780 <- read.table("./Data/CA/enr7780.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE); setDT(DT7780)
+# School, Grade and Ethnicity factors start in 1981
+df8192 <- read.table("./Data/CA/enr8192.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE); setDT(DT8192)
+# Annual data files start in 1993
+df9697 <- read.table("./Data/CA/ent1996-1997.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE); setDT(DT9697)
+df0607 <- read.table("./Data/CA/men2006-2007.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE); setDT(DT0607)
+df1617 <- read.table("./Data/CA/rol2016-2017.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE); setDT(DT1617)
+df8687 <- df8192[, YEAR == 8687] # Select single year from 8192 df
+
+
+# Change CDS_CODE type from double to string for precision
+df8192 <- df8192[, CDS_CODE:=as.character(CDS_CODE)]
+df9697 <- df9697[, CDS_CODE:=as.character(CDS_CODE)]
+df0607 <- df0607[, CDS_CODE:=as.character(CDS_CODE)]
+df1617 <- df1617[, CDS_CODE:=as.character(CDS_CODE)]
+
+# Try an individual school (is)
+cds1 = 19647331933043 # "Benjamin Franklin Senior High"
+cds2 = 19647331932540 # "Eagle Rock High/Eagle Rock Junior Senior High"
+is1617 <- subset(df1617, CDS_CODE == cds2, select = c(ETHNIC, GENDER, GR_9, GR_10, GR_11, GR_12, ENR_TOTAL))
+is0607 <- subset(df0607, CDS_CODE == cds2, select = c(ETHNIC, GENDER, GR_9, GR_10, GR_11, GR_12, ENR_TOTAL))
+is9697 <- subset(df9697, CDS_CODE == cds2, select = c(ETHNIC, GENDER, GR_9, GR_10, GR_11, GR_12, ENR_TOTAL))
+is8687 <- subset(df8192, CDS_CODE == cds2 & YEAR == 8687, select = c(ETHNIC, GENDER, GR_9, GR_10, GR_11, GR_12, ENR_TOTAL))
+levels(is8687$ETHNIC) = c(NA, NA, "2", "6", "4", "5", "1", "3", "7")
+
+# Plot enrollments by ethnicity with gender fill
+is = is1617 # Set year to visualize (1617, 0607, 9697, 8687)
+ggplot(data = is) +
+  geom_bar(mapping = aes(x = ETHNIC, y = ENR_TOTAL, fill = GENDER), stat = "identity")
 
 listis8616 <- list(is8687, is9697, is0607, is1617)
 setattr(listis8616, 'names', c("1986", "1996", "2006", "2016"))
@@ -54,9 +126,7 @@ levels(is8616$ETHNIC) = c("Asian", "African American", "Filipino", "Hispanic", "
 # Combine Indian, Islander, Multiple, and No Response to Other for $ETHNIC
 setDT(is8616) %>% .[ETHNIC == "American Indian" | ETHNIC == "Pacific Islander" | ETHNIC == "Multiple or No Response" | ETHNIC == "Two or more", ETHNIC := "Other"]
 
-# Plot enrollments by ethnicity with gender fill
-ggplot(data = is1617) +
-  geom_bar(mapping = aes(x = ETHNIC, y = ENR_TOTAL, fill = GENDER), stat = "identity")
+
 
 # Plot enrollments by ethnicity stacked across year
 ggplot(is8616[order(YEAR, ETHNIC)],aes(x = YEAR, y = ENR_TOTAL, fill = ETHNIC)) + 
@@ -67,10 +137,10 @@ ggplot(is8616[order(YEAR, ETHNIC)],aes(x = YEAR, y = ENR_TOTAL, fill = ETHNIC)) 
   ggtitle("Ethnic Diversity of Eagle Rock School by Decade") # Name needs to be substituted
 
 # Plot enrollments by grade with ethnic fill
-# Need to melt the grade variables and provide col names
+# Melt the grade variables and provide col names
 tdybf1617 <- melt(bf1617, id=c("ETHNIC", "GENDER"))
 setnames(tdybf1617, c("variable", "value"), c("GRADE", "ENROLLMENT"))
-# Need to make ETHNIC a factor
+# Make ETHNIC a factor
 tdybf1617$ETHNIC <- as.factor(tdybf1617$ETHNIC)
 levels(tdybf1617$ETHNIC) = c("American Indian", "Asian", "Filipino", "Hispanic", "African American", "White", "Two or more")
 ggplot(data = tdybf1617) +
@@ -87,136 +157,7 @@ ggplot(data = tdydfHS1617) +
   geom_bar(mapping = aes(x = GRADE, y = ENROLLMENT, fill = ETHNIC), stat = "identity") +
   facet_grid(GENDER ~ ETHNIC)
 
-# ================ Part 1a: Create data.tables ============================
-# Create data.tables for 1981-1992, 2009-2016, 1998-2008, 1993-1997
-# Grouping years by common factors
-#
 
-# Create a list of files to combine
-en0916.list <- fileList("./Data/CA", "^rol")
-en9806.list <- fileList("./Data/CA", "^men")
-en0708.list <- fileList("./Data/CA", "^wat")
-en9397.list <- fileList("./Data/CA", "^ent")
-
-# Convert file list into a datatable with an ID row (Using starting year as the year indicator)
-DT16 <- listToDataTable(en0916.list, c("2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016"), id="YEAR")
-DT08 <- listToDataTable(en0708.list, c("2007", "2008"), id="YEAR")
-DT06 <- listToDataTable(en9806.list, c("1998", "1999", "2000", "2001", "2002", "2003", "2004", "2005", "2006"), id="YEAR")
-DT97 <- listToDataTable(en9397.list, c("1993", "1994", "1995", "1996", "1997"), id="YEAR")
-
-# Read in 1981-1992 
-if(!exists("DT92")) {
-  DT92 <- read.table("./Data/CA/enr8192.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE); 
-  setDT(DT92)
-}
-
-# Make full CDS_CODE visible
-options(scipen = 16) 
-# Change CDS_CODE type from double to string for precision
-DT16 <- DT16[, CDS_CODE:=as.character(CDS_CODE)]
-DT08 <- DT08[, CDS_CODE:=as.character(CDS_CODE)]
-DT06 <- DT06[, CDS_CODE:=as.character(CDS_CODE)]
-DT97 <- DT97[, CDS_CODE:=as.character(CDS_CODE)]
-DT92 <- DT92[, CDS_CODE:=as.character(CDS_CODE)]
-# better to use bit64::integer64 for such ids than setNumericRounding(0)
-
-# Load database of California Public Schools
-# CDE/CDS doesn't keep complete records at https://www.cde.ca.gov/ds/si/ds/pubschls.asp
-pubsch <- read.table("./Data/CA/pubschls.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE)
-pubsch <- data.table(pubsch)
-setnames(pubsch, c("CDSCode", "County", "District", "School"), c("CDS_CODE", "COUNTY", "DISTRICT", "SCHOOL"))
-pubsch <- pubsch[, CDS_CODE:=as.character(CDS_CODE)]
-# Attempted NCES list at https://nces.ed.gov/programs/edge/geographicGeocode.aspx but it was LESS schools
-
-# Create data.table with CDSCode County District School Charter Latitude Longitude
-sch <- pubsch[,.(CDS_CODE, COUNTY, DISTRICT, SCHOOL, Charter, Latitude, Longitude)]
-setkey(sch, CDS_CODE)
-sch <- unique(sch)
-
-# Create data.table with school CDS information only
-cds <- sch[,.(CDS_CODE, COUNTY, DISTRICT, SCHOOL)]
-setkey(cds, CDS_CODE)
-
-# Set key for data tables
-setkey(DT92, CDS_CODE); setkey(DT06, CDS_CODE); setkey(DT97, CDS_CODE); setkey(DT16, CDS_CODE)
-
-# Reorder cols in DT08 and DT16
-setcolorder(DT08, c("CDS_CODE", "COUNTY", "DISTRICT", "SCHOOL", "YEAR", "ETHNIC", "GENDER", "KDGN", "GR_1", "GR_2", "GR_3", "GR_4", "GR_5", "GR_6", "GR_7", "GR_8", "UNGR_ELM", "GR_9", "GR_10", "GR_11", "GR_12", "UNGR_SEC", "ENR_TOTAL", "ADULT"))
-setcolorder(DT16, c("CDS_CODE", "COUNTY", "DISTRICT", "SCHOOL", "YEAR", "ETHNIC", "GENDER", "KDGN", "GR_1", "GR_2", "GR_3", "GR_4", "GR_5", "GR_6", "GR_7", "GR_8", "UNGR_ELM", "GR_9", "GR_10", "GR_11", "GR_12", "UNGR_SEC", "ENR_TOTAL", "ADULT"))
-
-# Merge County, District, School onto 92, 97 and 06 datatables
-DT92 <- cds[DT92]
-DT97 <- cds[DT97]
-DT06 <- cds[DT06]
-
-# To combine data.tables from different years use rbind()
-DT08 <- rbind(DT06, DT08)
-setkey(DT08, CDS_CODE)
-
-# Check Variables
-head(DT92)
-head(DT97)
-head(DT08)
-head(DT16)
-str(DT92)
-str(DT97)
-str(DT08)
-str(DT16) # should be 58 counties - replace CAPS with Caps         
-replaceCAPS(DT16) # "HUMBOLDT", "STANISLAUS", "TEHAMA", "TULARE", "VENTURA"
-DT16$COUNTY <- droplevels(DT16$COUNTY)
-str(DT16)
-# Check dimensions
-dim(DT92) # 767338     26
-dim(DT97) # 430252     24
-dim(DT08) # 1184523      24
-dim(DT16) # 1021970      24
-
-# ================== Part 1b: Check NA values =============================
-# Note that NA values 92, 97, 08 are mainly explained by unlabeled CDS_CODES with enrollment data 
-# poor merging C, D, S by CDS_Code (closed schools?)
-
-sapply(DT92, function(y) sum(length(which(is.na(y))))) # 16387 CDS_CODEs to merge with C, D, S
-sapply(DT97, function(y) sum(length(which(is.na(y))))) # 9431 CDS_CODEs to merge with C, D, S
-sapply(DT08, function(y) sum(length(which(is.na(y))))) # 20295 CDS_CODEs to merge and 173 NA rows to inspect/remove, 
-sapply(DT16, function(y) sum(length(which(is.na(y))))) # 551 NA rows to inspect/remove
-
-# Recover lost CDS labels from DT92
-cds92 <- recoverLostCDS(DT92, sch)
-setkey(cds92, CDS_CODE)
-DT92[, SchoolName := NULL]; DT92[, DistrictName := NULL] # Remove S,D cols
-joinRecoveredCDS(DT92, cds92)
-joinRecoveredCDS(DT97, cds92)
-joinRecoveredCDS(DT08, cds92)
-
-sapply(DT92, function(y) sum(length(which(is.na(y))))) # All filled
-sapply(DT97, function(y) sum(length(which(is.na(y))))) # 268 CDS_CODEs without C, D, S
-sapply(DT08, function(y) sum(length(which(is.na(y))))) # 4013 CDS_CODEs without C, D, S
-
-# Schools that opened since 1992 and closed before 2017
-un97 <- unique(subset(DT97, is.na(SCHOOL), select=CDS_CODE)) # 15 unlabeled schools (from 199)
-un08 <- unique(subset(DT08, is.na(SCHOOL), select=CDS_CODE)) # 322 unlabeled schools (from 510)
-
-# Mysterious NA rows in DT08 and DT16
-na08 <- subset(DT08, is.na(ETHNIC), select=c(CDS_CODE, YEAR)) 
-unique(na08[,.(CDS_CODE)]) # 13 schools without enrollment for a year or more
-na16 <- subset(DT16, is.na(ETHNIC), select=c(CDS_CODE, YEAR)) 
-unique(na16[,.(CDS_CODE)]) # 36 schools without enrollment for a year or more
-
-# Collect CDS_CODES for schools with NA enrollment rows
-NA_CDS <- rbind(na08, na16) # Schools without enrollment
-# Frequency chart of how many NA rows for each NA school by year
-table(NA_CDS) 
-# Looks like NA were removed before 2007
-# How were the number of repetitions generated? (eg why 4, 8, 7, 8... for row 3?)
-# A school wih non-zero values may be assumed 'closed' (eg row 1 is a closed school 2007-2016)
-# It may be safe to make NA values 0, but I will leave them in
-
-# Write data tables to csv for others to use and avoid above work
-# Recall the year ranges are kept seperate due to changes in ETHNIC codes across ranges
-write_csv(DT92, "./Transformed_Data/CA/8192.csv", na = "NA", append = FALSE, col_names = TRUE)
-write_csv(DT97, "./Transformed_Data/CA/9397.csv", na = "NA", append = FALSE, col_names = TRUE)
-write_csv(DT08, "./Transformed_Data/CA/9808.csv", na = "NA", append = FALSE, col_names = TRUE)
-write_csv(DT16, "./Transformed_Data/CA/0916.csv", na = "NA", append = FALSE, col_names = TRUE)
 
 # ================== Part 1c: Combine ETHNIC =============================
 # Merge 1981-2016 data by making common levels for the ETHNIC factor
@@ -254,7 +195,7 @@ ggplot(DT8116[CDS_CODE == cds2][order(YEAR, ETHNIC)],aes(x = YEAR, y = ENR_TOTAL
   ggtitle("Ethnic Diversity of Eagle Rock School by Decade") # Name needs to be substituted
 
 
-# ================================ Part 2 ==================================
+# ================================ Part 2 Total Enrollment ==================================
 # Enrollment totals from 1993-2016        ʕ•ᴥ•ʔ
 # 
 
@@ -301,7 +242,7 @@ ggplot(ndCount,
   geom_point() +
   labs(y = "NUMBER OF SCHOOLS")
 
-# ============================ Part 3 =========================
+# ============================ Part 3 Public v Charter =========================
 # Add Charter column from public schools set        ᕙ(⇀‸↼‶)ᕗ
 #
 
@@ -319,7 +260,7 @@ setkey(uniqcharter, CDSCode)
 DTc <- DT[uniqcharter, nomatch=0]
 
 
-# ============================= Part 4 ========================
+# ============================= Part 4 Grade Level ========================
 # Enrollment by school-type factors     （ ^_^）o自自o（^_^ ）
 # Group into HS, MS, ES, other
 # 

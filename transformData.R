@@ -22,14 +22,14 @@ en9806.list <- fileList("./Data/CA", "^men")
 en0708.list <- fileList("./Data/CA", "^wat")
 en9397.list <- fileList("./Data/CA", "^ent")
 
-# Convert file list into a datatable with an ID row (Using starting year as the year indicator)
+# Convert file list into a data.table with an ID row (Using starting year as the year indicator)
 DT16 <- listToDataTable(en0916.list, c("2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016"), id="YEAR")
 DT08 <- listToDataTable(en0708.list, c("2007", "2008"), id="YEAR")
 DT06 <- listToDataTable(en9806.list, c("1998", "1999", "2000", "2001", "2002", "2003", "2004", "2005", "2006"), id="YEAR")
 DT97 <- listToDataTable(en9397.list, c("1993", "1994", "1995", "1996", "1997"), id="YEAR")
 
 # Read in 1981-1992 
-if(!exists(DT92)) {
+if(!exists("DT92")) {
   DT92 <- read.table("./Data/CA/enr8192.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE)
   setDT(DT92)
 }
@@ -85,14 +85,17 @@ head(DT16)
 str(DT92)
 str(DT97)
 str(DT08)
+str(DT16) # should be 58 counties - replace CAPS with Caps         
+replaceCAPS(DT16) # "HUMBOLDT", "STANISLAUS", "TEHAMA", "TULARE", "VENTURA"
+DT16$COUNTY <- droplevels(DT16$COUNTY)
 str(DT16)
 # Check dimensions
-dim(DT92)
-dim(DT97)
-dim(DT08)
-dim(DT16)
+dim(DT92) # 767338     26
+dim(DT97) # 430252     24
+dim(DT08) # 1184523      24
+dim(DT16) # 1021970      24
 
-# ================== Part 1b: Check NA values =============================
+# ================== Part 2: Check NA values =============================
 # Note that NA values 92, 97, 08 are mainly explained by unlabeled CDS_CODES with enrollment data 
 # poor merging C, D, S by CDS_Code (closed schools?)
 
@@ -132,8 +135,10 @@ table(NA_CDS)
 # A school wih non-zero values may be assumed 'closed' (eg row 1 is a closed school 2007-2016)
 # It may be safe to make NA values 0, but I will leave them in
 
+# ================== Part 3: Write transformed data to csv =============================
 # Write data tables to csv for others to use and avoid above work
 # Recall the year ranges are kept seperate due to changes in ETHNIC codes across ranges
+
 write_csv(DT92, "./Transformed_Data/CA/8192.csv", na = "NA", append = FALSE, col_names = TRUE)
 write_csv(DT97, "./Transformed_Data/CA/9397.csv", na = "NA", append = FALSE, col_names = TRUE)
 write_csv(DT08, "./Transformed_Data/CA/9808.csv", na = "NA", append = FALSE, col_names = TRUE)

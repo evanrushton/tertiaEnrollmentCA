@@ -10,7 +10,7 @@ return(file.list)
 listToDataTable <- function(file.list, names.list, id) {
   DT.list <- lapply(file.list, read.table, fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE)
   setattr(DT.list, 'names', names.list)
-  return(rbindlist(DT.list, use.names=TRUE, fill=TRUE, idcol=id))
+  return(rbindlist(DT.list, use.names=TRUE, fill=TRUE, idcol=id)) # creates data.table from list of data.frames
 }
 
 # Replace COUNTY CAPS from '16 with Caps
