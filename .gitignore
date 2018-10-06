@@ -1,6 +1,7 @@
 Data/
 Output/
 Transformed_Data/
+.Rhistory
 *.csv
 *.txt
 *.zip
