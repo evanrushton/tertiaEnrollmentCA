@@ -1,3 +1,6 @@
+Data/
+Output/
+Transformed_Data/
 *.csv
 *.txt
 *.zip
