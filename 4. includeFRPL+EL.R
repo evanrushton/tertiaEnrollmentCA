@@ -21,7 +21,18 @@ source("./functions.R")
 # Create a list of files to combine 
 el0117.list <- fileList("./Data/CA", "^els.*txt$") # (years with diff colnames)
 el8000.list <- fileList("./Data/CA", "^els.*csv$") # (csv needs different params)
+colnames <- c("CDS_CODE", "COUNTY", "DISTRICT", "SCHOOL", "LC", "LANGUAGE", "KDGN", "GR_1", "GR_2", "GR_3", "GR_4", "GR_5", "GR_6", "GR_7", "GR_8", "GR_9", "GR_10", "GR_11", "GR_12", "UNGR", "TOTAL")
+
+DT.list <- lapply(el8000.list, read.csv, header=TRUE, check.names=FALSE)
+setattr(DT.list, 'names', c("1980", "1981", "1982","1983", "1984", "1985", "1986", "1987", "1988", "1989", "1990", "1991", "1992", "1993", "1994", "1995", "1996", "1997", "1998", "1999", "2000"))
+DT.list$`1980`$CDS_CODE <- NULL # Remove duplicate CDS col from 1980
+DT.list <- lapply(DT.list, setNames, colnames)
+DT00 <- rbindlist(DT.list, use.names=TRUE, fill=TRUE, idcol='YEAR') # creates data.table from list of data.frames
+
 # Convert file list into a data.table with an ID row (Using starting year as the year indicator)
 DT17 <- listToDataTable(el0117.list, c("2001", "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017"), id="YEAR")
 DT00 <- csvListToDataTable(el8000.list, c("1980", "1981", "1982","1983", "1984", "1985", "1986", "1987", "1988", "1989", "1990", "1991", "1992", "1993", "1994", "1995", "1996", "1997", "1998", "1999", "2000"), id="YEAR")
+
+
+
  
