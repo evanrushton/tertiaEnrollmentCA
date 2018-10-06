@@ -13,6 +13,13 @@ listToDataTable <- function(file.list, names.list, id) {
   return(rbindlist(DT.list, use.names=TRUE, fill=TRUE, idcol=id)) # creates data.table from list of data.frames
 }
 
+# Returns a datatable from a list of comma delimited files and a list of names
+csvListToDataTable <- function(file.list, names.list, id) {
+  DT.list <- lapply(file.list, read.table, fill=TRUE, na.strings=c("", "NA"), sep =",", quote = "", header=TRUE)
+  setattr(DT.list, 'names', names.list)
+  return(rbindlist(DT.list, use.names=TRUE, fill=TRUE, idcol=id)) # creates data.table from list of data.frames
+}
+
 # Replace COUNTY CAPS from '16 with Caps
 replaceCAPS <- function(DT) {
   DT[COUNTY == "HUMBOLDT", COUNTY := "Humboldt"]
