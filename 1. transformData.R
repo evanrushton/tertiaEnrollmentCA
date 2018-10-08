@@ -1,4 +1,4 @@
-# Combining yearly files into year spans based on common format
+# Combining yearly files into year spans based on common structure
 # Eventual files are for 1981-1992, 1993-1997, 1998-2008, 2009-2017
 # These data and more are available at http://www.cde.ca.gov/ds/sd/sd/
 
@@ -14,7 +14,6 @@ source("./functions.R")
 # ================== Create data.tables 1981-2017 ============================
 # Create data.tables for 1981-1992, 2009-2017, 1998-2008, 1993-1997
 # Grouping years by common factors
-#
 
 # Create a list of files to combine
 en0916.list <- fileList("./Data/CA", "^rol")
@@ -45,7 +44,7 @@ DT92 <- DT92[, CDS_CODE:=as.character(CDS_CODE)]
 # better to use bit64::integer64 for such ids than setNumericRounding(0)
 
 # Load database of California Public Schools
-# CDE/CDS doesn't keep complete records at https://www.cde.ca.gov/ds/si/ds/pubschls.asp
+# CDE doesn't keep complete CDS records at https://www.cde.ca.gov/ds/si/ds/pubschls.asp
 pubsch <- read.table("./Data/CA/pubschls.txt", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE)
 pubsch <- data.table(pubsch)
 setnames(pubsch, c("CDSCode", "County", "District", "School"), c("CDS_CODE", "COUNTY", "DISTRICT", "SCHOOL"))
@@ -95,7 +94,7 @@ dim(DT97) # 430252     24
 dim(DT08) # 1184523      24
 dim(DT16) # 11152164      24
 
-# ================== Part 2: Check NA values =============================
+# ================== Check NA values =============================
 # Note that NA values 92, 97, 08 are mainly explained by unlabeled CDS_CODES with enrollment data 
 # poor merging C, D, S by CDS_Code (probably closed schools)
 
@@ -135,7 +134,7 @@ xtabs(~ CDS_CODE + YEAR, data=NA_CDS)
 # A school wih non-zero values may be assumed 'closed' (eg row 1 is a closed school 2007-2016)
 # It may be safe to remove NA rows, but I will leave them in
 
-# ================== Part 3: Write transformed data to csv =============================
+# ================== Write transformed data to csv =============================
 # Write data tables to csv for others to use and avoid above work
 # Recall the year ranges are kept seperate due to changes in ETHNIC codes across ranges
 
