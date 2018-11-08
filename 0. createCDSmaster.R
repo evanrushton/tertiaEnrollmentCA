@@ -1,9 +1,8 @@
-# Create a master CDS list
+# Create a master CDS list to create uniform category names across years when merging
 
 # ================== Load libraries and scripts ===========================
 library(readr) # For CSV file I/O
 library(data.table) # To convert dataframes to datatables
-library(magrittr) # Pipe %>%
 source("./functions.R")
 
 # ================== Create data.tables 1981-2017 ============================
@@ -60,6 +59,10 @@ cds <- cds[!which(is.na(cds$SCHOOL)),]
 # Set key for data tables
 setkey(DT92, CDS_CODE); setkey(DT06, CDS_CODE); setkey(DT97, CDS_CODE); setkey(DT17, CDS_CODE); setkey(DT08, CDS_CODE)
 
+# Fix County Capitalization
+replaceCAPS(DT17) # "HUMBOLDT", "STANISLAUS", "TEHAMA", "TULARE", "VENTURA"
+DT17$COUNTY <- droplevels(DT17$COUNTY)
+
 # Reorder cols in DT08 and DT16
 setcolorder(DT08, c("CDS_CODE", "COUNTY", "DISTRICT", "SCHOOL", "YEAR", "ETHNIC", "GENDER", "KDGN", "GR_1", "GR_2", "GR_3", "GR_4", "GR_5", "GR_6", "GR_7", "GR_8", "UNGR_ELM", "GR_9", "GR_10", "GR_11", "GR_12", "UNGR_SEC", "ENR_TOTAL", "ADULT"))
 setcolorder(DT17, c("CDS_CODE", "COUNTY", "DISTRICT", "SCHOOL", "YEAR", "ETHNIC", "GENDER", "KDGN", "GR_1", "GR_2", "GR_3", "GR_4", "GR_5", "GR_6", "GR_7", "GR_8", "UNGR_ELM", "GR_9", "GR_10", "GR_11", "GR_12", "UNGR_SEC", "ENR_TOTAL", "ADULT"))
@@ -72,26 +75,32 @@ sapply(DT08, function(y) sum(length(which(is.na(y))))) # 173 rows, 2 CDS
 sapply(DT92, function(y) sum(length(which(is.na(y))))) # 0
 sapply(cds, function(y) sum(length(which(is.na(y))))) # 0
 
-# Merge County, District, School onto 92, 97 and 06 datatables
+# Merge County, District, School onto 92, 97, 06, 08, 17 datatables
 DT17 <- cds[DT17] # duplicates existing county, district and school
 DT08 <- cds[DT08] # duplicates existing county, district and school
 DT92 <- cds[DT92] # duplicates existing district and school
+DT06c <- cds[DT06] # to check how many schools are missing
+DT97c <- cds[DT97] # to check how many schools are missing
 
-sapply(DT17, function(y) sum(length(which(is.na(y))))) # 653 rows, 22805 newCDS 
-sapply(DT08, function(y) sum(length(which(is.na(y))))) # 173 rows, 2 CDS, 6605 newCDS
-sapply(DT92, function(y) sum(length(which(is.na(y))))) # 0, 16428 newCDS
+sapply(DT17, function(y) sum(length(which(is.na(y))))) # 22805 missing CDS rows (779 unique)
+sapply(DT08, function(y) sum(length(which(is.na(y))))) # 6605 missing CDS rows (556 unique)
+sapply(DT92, function(y) sum(length(which(is.na(y))))) # 16428 missing CDS rows (226 unique)
+sapply(DT06c, function(y) sum(length(which(is.na(y))))) # 20754 missing CDS rows (514 unique)
+sapply(DT97c, function(y) sum(length(which(is.na(y))))) # 9536 missing CDS rows (202 unique)
 
 ## Healing missing CDS codes
 cdsna92 <- unique(subset(DT92, is.na(SCHOOL), select=CDS_CODE)) # 226 unlabeled schools
 cdsna08 <- unique(subset(DT08, is.na(SCHOOL), select=CDS_CODE)) # 556 unlabeled schools
 cdsna17 <- unique(subset(DT17, is.na(SCHOOL), select=CDS_CODE)) # 779 unlabeled schools
-length(union(union(cdsna92$CDS_CODE, cdsna08$CDS_CODE), cdsna17$CDS_CODE)) # total 970 unlabeled schools
+cdsna06 <- unique(subset(DT06c, is.na(SCHOOL), select=CDS_CODE)) # 514 unlabeled schools
+cdsna97 <- unique(subset(DT97c, is.na(SCHOOL), select=CDS_CODE)) # 202 unlabeled schools
+length(union(union(union(union(cdsna06$CDS_CODE, cdsna97$CDS_CODE), cdsna92$CDS_CODE), cdsna08$CDS_CODE), cdsna17$CDS_CODE)) # total 1010 unlabeled schools
 setkey(cdsna92, CDS_CODE); setkey(cdsna08, CDS_CODE); setkey(cdsna17, CDS_CODE)
 setkey(DT92, CDS_CODE); setkey(DT08, CDS_CODE); setkey(DT17, CDS_CODE)
 
-cds92 <-recoverLostCDS92(DT92, sch) # 226 recovered District/School for NA
+cds92 <- recoverLostCDS92(DT92, sch) # 226 recovered District/School for NA
 cds08 <- DT08[which(!duplicated(DT08$CDS_CODE)),.(CDS_CODE, i.COUNTY, i.DISTRICT, i.SCHOOL)][cdsna08] # 556 recovered
-cds17 <- DT17[which(!duplicated(DT17$CDS_CODE)),.(CDS_CODE, County, District, School)][cdsna17] # 779 recovered
+cds17 <- DT17[which(!duplicated(DT17$CDS_CODE)),.(CDS_CODE, i.COUNTY, i.DISTRICT, i.SCHOOL)][cdsna17] # 779 recovered
 
 setcolorder(cds92, c("CDS_CODE", "COUNTY", "DISTRICT", "SchoolName"))
 names(cds92)[4] <- "SCHOOL"
@@ -99,9 +108,17 @@ names(cds08)[2:4] <- c("COUNTY", "DISTRICT", "SCHOOL")
 names(cds17)[2:4] <- c("COUNTY", "DISTRICT", "SCHOOL")
 cds_new <- rbind(cds92, cds08, cds17)
 setkey(cds_new, CDS_CODE)
-cds_new <- cds_new[which(!duplicated(CDS_CODE)),] # 970 unlabeled schools
+cds_new <- cds_new[which(!duplicated(CDS_CODE)),] # 970 recovered schools
 
-cds <- rbind(cds, cds_new)
+cds <- rbind(cds, cds_new) # 17565
+cds <- cds[-which(is.na(cds$COUNTY))] # remove 2 NA
 
 # Write cds_master list
-write.csv2(cds, "./Transformed_Data/CA/cds_master.csv", na = "NA")
+write.csv2(cds, "./Transformed_Data/CA/cds_master.csv", na = "NA", row.names = FALSE)
+
+# Check 06 and 97
+setkey(DT06, CDS_CODE); setkey(DT97, CDS_CODE); setkey(cds, CDS_CODE)
+DT06 <- cds[DT06] # to check how many schools still missing
+DT97 <- cds[DT97] # to check how many schools still missing
+sapply(DT06, function(y) sum(length(which(is.na(y))))) # 671 CDS rows (38 unique)
+sapply(DT97, function(y) sum(length(which(is.na(y))))) # 66 CDS rows (7 unique)
