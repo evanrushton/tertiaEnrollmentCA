@@ -54,11 +54,11 @@ removeEthnGen <- function(DT) {
 }
 
 # Recover lost CDS labels from '92 data
-recoverLostCDS <- function(DT92, sch) {
+recoverLostCDS92 <- function(DT92, sch) {
   cdsna92 <- unique(subset(DT92, is.na(SCHOOL), select=CDS_CODE)) # unlabeled schools
   setkey(cdsna92, CDS_CODE)
   setkey(DT92, CDS_CODE)
-  cds92 <- unique(DT92[,.(CDS_CODE, DistrictName, SchoolName)])[cdsna92] # recovered District/School for NA
+  cds92 <- DT92[which(!duplicated(DT92$CDS_CODE)),.(CDS_CODE, DistrictName, SchoolName)][cdsna92] # recovered District/School for NA
   # Recover COUNTY field
   countyDist <- sch[,.(COUNTY, DISTRICT)]
   setkey(countyDist, DISTRICT)
@@ -70,11 +70,14 @@ recoverLostCDS <- function(DT92, sch) {
   countyDist <- unique(countyDist) # Remove duplicate districts (used to have elem + high)
   setkey(cds92, DistrictName)
   cds92 <- countyDist[cds92]
+  # Remove extra rows
+  cds92 <- cds92[-which(cds92$DISTRICT == "Pleasant Valley" & cds92$COUNTY == "Ventura" | cds92$DISTRICT == "Washington Union" & cds92$COUNTY == "Monterey")]
   # Missing Districts 
   missdist <- c("Madera", "Contra Costa", "Orange", "San Diego", "Santa Barbara", "Santa Barbara", "Santa Barbara", "Santa Barbara", "Santa Barbara", "Santa Barbara", "Santa Barbara", "Santa Barbara", "Santa Barbara", "Santa Barbara", "Santa Barbara")
   cds92[which(is.na(COUNTY)), COUNTY:=missdist]
   return(cds92)
 }
+
 
 # Remove words from a list of stopwords from the input string
 removeWords <- function(str, stopwords) {
