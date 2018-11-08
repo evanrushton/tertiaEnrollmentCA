@@ -114,3 +114,8 @@ joinCharters <- function(DT) {
   DT <- DT[uniqcharter, nomatch=0]
   return(DT)
 }
+
+# Order enrollment columns before merging CDS
+reorderCols <- function(DT) {
+  setcolorder(DT, c("CDS_CODE", "YEAR", "ETHNIC", "GENDER", "KDGN", "GR_1", "GR_2", "GR_3", "GR_4", "GR_5", "GR_6", "GR_7", "GR_8", "UNGR_ELM", "GR_9", "GR_10", "GR_11", "GR_12", "UNGR_SEC", "ENR_TOTAL", "ADULT"))
+}
