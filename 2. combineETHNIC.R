@@ -13,7 +13,7 @@ DT9397 <- fread("./Transformed_Data/CA/9397.csv", na.strings=c("", "NA"), header
 DT9808 <- fread("./Transformed_Data/CA/9808.csv", na.strings=c("", "NA"), header=TRUE); setDT(DT9808)
 DT0916 <- fread("./Transformed_Data/CA/0916.csv", na.strings=c("", "NA"), header=TRUE); setDT(DT0916)
 DT8192[, ETHNIC:=as.factor(ETHNIC)] # "A" "B" "F" "H" "I" "P" "W"
-levels(DT8192$ETHNIC) = c("2", "6", "4", "5", "1", "3", "7")
+levels(DT8192$ETHNIC) = c(NA, NA, "2", "6", "4", "5", "1", "3", "7")
 DT9397[, ETHNIC:=as.factor(ETHNIC)] # "1" "2" "3" "4" "5" "6" "7"
 DT9808[, ETHNIC:=as.factor(ETHNIC)] # "1" "2" "3" "4" "5" "6" "7" "8"
 DT0916[, ETHNIC:=as.factor(ETHNIC)] # "2" "6" "4" "5" "1" "3" "7"
@@ -25,6 +25,7 @@ DT8116 <- rbindlist(listDT8116, use.names=TRUE)
 levels(DT8116$ETHNIC) # "2" "6" "4" "5" "1" "3" "7" "8" "0" "9"
 levels(DT8116$ETHNIC) = c("Asian", "African American", "Filipino", "Hispanic", "American Indian", "Pacific Islander", "White", "Multiple or No Response", "Not Reported", "Two or more") 
 
+sapply(DT8116, function(y) sum(length(which(is.na(y))))) # 739 CDS, 29715 ETHNIC (mainly 82+83)
 # Write combined data.table to csv
 write_csv(DT8116, "./Transformed_Data/CA/8116.csv", na = "NA", append = FALSE, col_names = TRUE)
 
