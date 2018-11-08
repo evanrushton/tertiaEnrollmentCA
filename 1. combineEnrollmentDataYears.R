@@ -7,7 +7,7 @@
 library(ggplot2) # For data visualization
 library(readr) # For CSV file I/O
 library(data.table) # To convert dataframes to datatables
-library(magrittr) # Pipe %<>%
+library(magrittr) # Pipe %>%
 library(scales)
 source("./functions.R")
 
@@ -45,15 +45,9 @@ DT92 <- DT92[, CDS_CODE:=as.character(CDS_CODE)]
 
 # Load database of California Public Schools
 # CDE doesn't keep complete CDS records at https://www.cde.ca.gov/ds/si/ds/pubschls.asp
-cds <- read.table("./Transformed_Data/CA/cds_master.csv", fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=TRUE)
+cds <- read.csv2("./Transformed_Data/CA/cds_master.csv", header=TRUE)
 cds <- data.table(cds)
-
-# Set key for data tables
-setkey(DT92, CDS_CODE); setkey(DT06, CDS_CODE); setkey(DT97, CDS_CODE); setkey(DT17, CDS_CODE); setkey(DT08, CDS_CODE)
-
-# Reorder cols in DT08 and DT16
-setcolorder(DT08, c("CDS_CODE", "COUNTY", "DISTRICT", "SCHOOL", "YEAR", "ETHNIC", "GENDER", "KDGN", "GR_1", "GR_2", "GR_3", "GR_4", "GR_5", "GR_6", "GR_7", "GR_8", "UNGR_ELM", "GR_9", "GR_10", "GR_11", "GR_12", "UNGR_SEC", "ENR_TOTAL", "ADULT"))
-setcolorder(DT17, c("CDS_CODE", "COUNTY", "DISTRICT", "SCHOOL", "YEAR", "ETHNIC", "GENDER", "KDGN", "GR_1", "GR_2", "GR_3", "GR_4", "GR_5", "GR_6", "GR_7", "GR_8", "UNGR_ELM", "GR_9", "GR_10", "GR_11", "GR_12", "UNGR_SEC", "ENR_TOTAL", "ADULT"))
+cds <- cds[, CDS_CODE:=as.character(CDS_CODE)]
 
 # Check for missing values
 sapply(DT06, function(y) sum(length(which(is.na(y))))) # 0
@@ -63,76 +57,65 @@ sapply(DT08, function(y) sum(length(which(is.na(y))))) # 173 rows, 2 CDS
 sapply(DT92, function(y) sum(length(which(is.na(y))))) # 0
 sapply(cds, function(y) sum(length(which(is.na(y))))) # 0
 
-# Merge County, District, School onto 92, 97 and 06 datatables
-DT17 <- cds[DT17] # duplicates existing county, district and school
-DT08 <- cds[DT08] # duplicates existing county, district and school
-DT92 <- cds[DT92] # duplicates existing district and school
+# CDS has been recovered - remove existing C, D, S and merge with cds_master
+DT92[, SchoolName := NULL]; DT92[, DistrictName := NULL]
+DT08[, COUNTY := NULL]; DT08[, DISTRICT := NULL]; DT08[, SCHOOL := NULL]
+DT17[, COUNTY := NULL]; DT17[, DISTRICT := NULL]; DT17[, SCHOOL := NULL]
 
-sapply(DT17, function(y) sum(length(which(is.na(y))))) # 653 rows, 22805 newCDS 
-sapply(DT08, function(y) sum(length(which(is.na(y))))) # 173 rows, 2 CDS, 6605 newCDS
-sapply(DT92, function(y) sum(length(which(is.na(y))))) # 0, 16428 newCDS
-
-
-DT97 <- cds[DT97]
-DT06 <- cds[DT06]
-
+# Merge DT06 and DT08
+setcolorder(DT06, c("CDS_CODE", "YEAR", "ETHNIC", "GENDER", "KDGN", "GR_1", "GR_2", "GR_3", "GR_4", "GR_5", "GR_6", "GR_7", "GR_8", "UNGR_ELM", "GR_9", "GR_10", "GR_11", "GR_12", "UNGR_SEC", "ENR_TOTAL", "ADULT"))
+setcolorder(DT08, c("CDS_CODE", "YEAR", "ETHNIC", "GENDER", "KDGN", "GR_1", "GR_2", "GR_3", "GR_4", "GR_5", "GR_6", "GR_7", "GR_8", "UNGR_ELM", "GR_9", "GR_10", "GR_11", "GR_12", "UNGR_SEC", "ENR_TOTAL", "ADULT"))
 # Bind rows
+setkey(DT06, CDS_CODE); setkey(DT08, CDS_CODE)
 DT08 <- rbind(DT06, DT08)
-setkey(DT08, CDS_CODE)
+rm(DT06)
 
+setcolorder(DT92, c("CDS_CODE", "YEAR", "ETHNIC", "GENDER", "KDGN", "GR_1", "GR_2", "GR_3", "GR_4", "GR_5", "GR_6", "GR_7", "GR_8", "UNGR_ELM", "GR_9", "GR_10", "GR_11", "GR_12", "UNGR_SEC", "ENR_TOTAL", "ADULT"))
+setcolorder(DT97, c("CDS_CODE", "YEAR", "ETHNIC", "GENDER", "KDGN", "GR_1", "GR_2", "GR_3", "GR_4", "GR_5", "GR_6", "GR_7", "GR_8", "UNGR_ELM", "GR_9", "GR_10", "GR_11", "GR_12", "UNGR_SEC", "ENR_TOTAL", "ADULT"))
+setcolorder(DT17, c("CDS_CODE", "YEAR", "ETHNIC", "GENDER", "KDGN", "GR_1", "GR_2", "GR_3", "GR_4", "GR_5", "GR_6", "GR_7", "GR_8", "UNGR_ELM", "GR_9", "GR_10", "GR_11", "GR_12", "UNGR_SEC", "ENR_TOTAL", "ADULT"))
+
+# Set key for data tables
+setkey(DT92, CDS_CODE); setkey(DT97, CDS_CODE); setkey(DT17, CDS_CODE); setkey(DT08, CDS_CODE); setkey(cds, CDS_CODE)
+
+# Merge with cds
+DT17 <- cds[DT17] 
+DT08 <- cds[DT08]
+DT97 <- cds[DT97] 
+DT92 <- cds[DT92] 
 
 # ================== Check NA values =============================
 # Missing rows are likely due to school closures
-sapply(DT08, function(y) sum(length(which(is.na(y))))) # 0
-sapply(DT08c, function(y) sum(length(which(is.na(y))))) # 79 rows, 24 CDS
-sapply(DT17c, function(y) sum(length(which(is.na(y))))) # 0
-sapply(DT17, function(y) sum(length(which(is.na(y))))) # 131 rows, 30 CDS
-sapply(DTel, function(y) sum(length(which(is.na(y))))) # 210 rows 
-
-
+sapply(DT17, function(y) sum(length(which(is.na(y))))) # 653 NA rows, was 22805 cds (now 71)
+sapply(DT08, function(y) sum(length(which(is.na(y))))) # 173 NA rows, was 27359 cds (now 673)
+sapply(DT92, function(y) sum(length(which(is.na(y))))) # 0, was 16428 cds (now 0)
+sapply(DT97, function(y) sum(length(which(is.na(y))))) # 0, was 9536 cds (now 66)
 
 # Check Variables
 head(DT92)
 head(DT97)
 head(DT08)
 head(DT17)
-str(DT92)
+str(DT92) # Reformat YEAR in DT92 done in "2. combineETHNIC.R"
 str(DT97)
 str(DT08)
-str(DT17) # should be 58 counties - replace CAPS with Caps         
-replaceCAPS(DT17) # "HUMBOLDT", "STANISLAUS", "TEHAMA", "TULARE", "VENTURA"
-DT17$COUNTY <- droplevels(DT17$COUNTY)
-str(DT17)
+str(DT17) 
 # Check dimensions
-dim(DT92) # 767338     26
+dim(DT92) # 767338     24
 dim(DT97) # 430252     24
 dim(DT08) # 1184523      24
-dim(DT17) # 11152164      24
+dim(DT17) # 1152164      24
 
-# ================== Check NA values =============================
+# ================== Explore NA values =============================
 # Note that NA values 92, 97, 08 are mainly explained by unlabeled CDS_CODES with enrollment data 
 # poor merging C, D, S by CDS_Code (probably closed schools)
 
-sapply(DT92, function(y) sum(length(which(is.na(y))))) # 16387 CDS_CODEs to merge with C, D, S (not contained in cds of pubschls.txt)
-sapply(DT97, function(y) sum(length(which(is.na(y))))) # 9431 CDS_CODEs to merge with C, D, S (not contained in cds of pubschls.txt)
-sapply(DT08, function(y) sum(length(which(is.na(y))))) # 20295 CDS_CODEs to merge (not contained in cds of pubschls.txt) and 173 NA rows to inspect/remove, 
-sapply(DT17, function(y) sum(length(which(is.na(y))))) # 653 NA rows to inspect/remove
-
-# Recover lost CDS labels from DT92
-cds92 <- recoverLostCDS(DT92, sch) # 229 recovered
-setkey(cds92, CDS_CODE)
-DT92[, SchoolName := NULL]; DT92[, DistrictName := NULL] # Remove S,D cols AFTER recover function above
-joinRecoveredCDS(DT92, cds92)
-joinRecoveredCDS(DT97, cds92)
-joinRecoveredCDS(DT08, cds92)
-
 sapply(DT92, function(y) sum(length(which(is.na(y))))) # All filled
-sapply(DT97, function(y) sum(length(which(is.na(y))))) # 268 CDS_CODEs without C, D, S
-sapply(DT08, function(y) sum(length(which(is.na(y))))) # 4013 CDS_CODEs without C, D, S
+sapply(DT97, function(y) sum(length(which(is.na(y))))) # 66 CDS_CODEs without C, D, S
+sapply(DT08, function(y) sum(length(which(is.na(y))))) # 673 CDS_CODEs without C, D, S
 
 # Schools that opened since 1992 and closed before 2017
-un97 <- unique(subset(DT97, is.na(SCHOOL), select=CDS_CODE)) # 15 unlabeled schools (from 199)
-un08 <- unique(subset(DT08, is.na(SCHOOL), select=CDS_CODE)) # 322 unlabeled schools (from 510)
+un97 <- unique(subset(DT97, is.na(SCHOOL), select=CDS_CODE)) # 7 unlabeled schools (from 202)
+un08 <- unique(subset(DT08, is.na(SCHOOL), select=CDS_CODE)) # 40 unlabeled schools (from 556)
 
 # Mysterious NA rows in DT08 and DT17
 na08 <- DT08[which(is.na(ETHNIC)),]
