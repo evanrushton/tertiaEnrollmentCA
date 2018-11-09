@@ -26,6 +26,7 @@ levels(DT8116$ETHNIC) # "2" "6" "4" "5" "1" "3" "7" "8" "0" "9"
 levels(DT8116$ETHNIC) = c("Asian", "African American", "Filipino", "Hispanic", "American Indian", "Pacific Islander", "White", "Multiple or No Response", "Not Reported", "Two or more") 
 
 sapply(DT8116, function(y) sum(length(which(is.na(y))))) # 739 CDS, 29715 ETHNIC (mainly 82+83)
+
 # Write combined data.table to csv
 write_csv(DT8116, "./Transformed_Data/CA/8116.csv", na = "NA", append = FALSE, col_names = TRUE)
 

@@ -2,7 +2,7 @@
 # These data and more are available at http://www.cde.ca.gov/ds/sd/sd/
 
 # ================== Load libraries and scripts ===========================
-# library(tidyverse)
+library(tidyverse)
 library(ggplot2) # For data visualization
 library(readr) # For CSV file I/O
 library(data.table) # To convert dataframes to datatables
@@ -41,17 +41,45 @@ setattr(DT.list, 'names', c("2002", "2003", "2004", "2005", "2006"))
 DT.list <- lapply(DT.list, setNames, colnames)
 DT06 <- rbindlist(DT.list, use.names=TRUE, fill=TRUE, idcol='YEAR') # creates data.table from list of data.frames
 
+# Load database of California Public Schools
+# CDE doesn't keep complete CDS records at https://www.cde.ca.gov/ds/si/ds/pubschls.asp
+# Built a more complete one in "0. createCDSmaster.R"
+cds <- read.csv2("./Transformed_Data/CA/cds_master.csv", header=TRUE)
+cds <- data.table(cds)
+cds <- cds[, CDS_CODE:=as.character(CDS_CODE)]
+
+DT.list <- c(DT00, DT06, DT17)
+lapplay(DT.list)
+
+# Ensure data types are consistent
+
+str(DT00)
+str(DT17)
+str(DT06)
+str(DTel)
+
 DTel <- rbind(DT00, DT17, DT06) # combine 3 data tables into one EL table for starting years 1980 - 2017
 
 # ================== Part 2: Check NA values =============================
 # Missing rows are likely due to school closures
 
 sapply(DT00, function(y) sum(length(which(is.na(y))))) # 0
-sapply(DT06, function(y) sum(length(which(is.na(y))))) # 79 rows, 24 CDS
-sapply(DT17, function(y) sum(length(which(is.na(y))))) # 131 rows, 30 CDS
-sapply(DTel, function(y) sum(length(which(is.na(y))))) # 210 rows, 54 CDS
+sapply(DT06, function(y) sum(length(which(is.na(y))))) # 79 rows, 24 unique CDS
+sapply(DT17, function(y) sum(length(which(is.na(y))))) # 131 rows, 30 unique CDS
+sapply(DTel, function(y) sum(length(which(is.na(y))))) # 210 rows, 54 unique CDS
 length(unique(DTel$CDS_CODE[which(is.na(DTel$LC))]))
 
+# Mysterious NA rows in DT06 and DT17
+na06 <- DT06[which(is.na(LC)),]
+unique(na06[,.(CDS_CODE)]) # 24 schools without language data for a year or more
+na17 <- DT17[which(is.na(LC)),]
+unique(na17[,.(CDS_CODE)]) # 30 schools without language data for a year or more
+
+# Collect CDS_CODES for schools with NA enrollment rows
+NA_CDS <- rbind(na06, na17) # Schools without enrollment
+NA_CDS$CDS_CODE <- as.character(NA_CDS$CDS_CODE)
+# Frequency chart of how many NA rows for each NA school by year
+xtabs(~ CDS_CODE + YEAR, data=NA_CDS) 
 
 # ================== Write transformed data to csv =============================
 # Write data tables to csv for others to use and avoid above work

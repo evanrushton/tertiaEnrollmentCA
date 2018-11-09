@@ -45,6 +45,7 @@ DT92 <- DT92[, CDS_CODE:=as.character(CDS_CODE)]
 
 # Load database of California Public Schools
 # CDE doesn't keep complete CDS records at https://www.cde.ca.gov/ds/si/ds/pubschls.asp
+# Built a more complete one in "0. createCDSmaster.R"
 cds <- read.csv2("./Transformed_Data/CA/cds_master.csv", header=TRUE)
 cds <- data.table(cds)
 cds <- cds[, CDS_CODE:=as.character(CDS_CODE)]
