@@ -8,6 +8,7 @@ library(readr) # For CSV file I/O
 library(data.table) # To convert dataframes to datatables
 library(magrittr) # Pipe %<>%
 library(scales)
+library(tools)
 source("./functions.R")
 
 # ================== Create data.tables  ================== 
@@ -36,10 +37,22 @@ setattr(DT.list, 'names', c("2001", "2007", "2008", "2009", "2010", "2011", "201
 DT.list <- lapply(DT.list, setNames, colnames)
 DT17 <- rbindlist(DT.list, use.names=TRUE, fill=TRUE, idcol='YEAR') # creates data.table from list of data.frames
 
-DT.list <- lapply(el0206.nh.list, read.table, fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "", header=FALSE, check.names=FALSE)
+DT.list <- lapply(el0206.nh.list, read.table, fill=TRUE, na.strings=c("", "NA"), sep ="\t", quote = "\"", header=FALSE, check.names=FALSE)
 setattr(DT.list, 'names', c("2002", "2003", "2004", "2005", "2006"))
 DT.list <- lapply(DT.list, setNames, colnames)
 DT06 <- rbindlist(DT.list, use.names=TRUE, fill=TRUE, idcol='YEAR') # creates data.table from list of data.frames
+
+# Clean DT06
+setDT(DT06)
+DT06[,COUNTY:= stringr::str_to_title(as.character(COUNTY))]
+DT06[,COUNTY:= as.factor(COUNTY)]
+DT06[COUNTY=="Santa Barbra", COUNTY:="Santa Barbara"]
+DT06[COUNTY=="Na", COUNTY:=NA]
+DT06 <- droplevels(DT06)
+DT06[,DISTRICT:= stringr::str_to_title(as.character(DISTRICT))]
+DT06[,DISTRICT:= as.factor(DISTRICT)]
+DT06[,SCHOOL:= stringr::str_to_title(as.character(SCHOOL))]
+DT06[,SCHOOL:= as.factor(SCHOOL)]
 
 # Load database of California Public Schools
 # CDE doesn't keep complete CDS records at https://www.cde.ca.gov/ds/si/ds/pubschls.asp
@@ -48,8 +61,19 @@ cds <- read.csv2("./Transformed_Data/CA/cds_master.csv", header=TRUE)
 cds <- data.table(cds)
 cds <- cds[, CDS_CODE:=as.character(CDS_CODE)]
 
-DT.list <- c(DT00, DT06, DT17)
-lapplay(DT.list)
+DT00 <- DT00[,CDS_CODE:=as.character(CDS_CODE)]
+DT17 <- DT17[,CDS_CODE:=as.character(CDS_CODE)]
+DT06 <- DT06[,CDS_CODE:=as.character(CDS_CODE)]
+
+setkey(cds, CDS_CODE); setkey(DT00, CDS_CODE); setkey(DT17, CDS_CODE); setkey(DT06, CDS_CODE)
+
+DT00 <- cds[DT00]
+DT17 <- cds[DT17]
+DT06 <- cds[DT06]
+
+# Recover 930 lost cds
+cds06 <- DT06[which(is.na(COUNTY)), c("CDS_CODE", "i.COUNTY", "i.DISTRICT", "i.SCHOOL")]
+
 
 # Ensure data types are consistent
 
