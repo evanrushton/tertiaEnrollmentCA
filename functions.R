@@ -123,6 +123,7 @@ reorderCols <- function(DT) {
 # Set Language based on Language Code as integers
 # https://www.cde.ca.gov/sp/cd/ci/childprimarylanguage.asp
 languageFromLC <- function(DT) {
+  DT[, LC:= as.integer(LC)]
   DT[LC == 1, LANGUAGE := "Spanish"]
   DT[LC == 2, LANGUAGE := "Vietnamese"]
   DT[LC == 3, LANGUAGE := "Cantonese"]
@@ -178,7 +179,37 @@ languageFromLC <- function(DT) {
   DT[LC == 53, LANGUAGE := "Toishanese"]
   DT[LC == 54, LANGUAGE := "Chaldean"]
   DT[LC == 55, LANGUAGE := "Other Languages of China"]
+  DT[LC == 56, LANGUAGE := "Albanian"]
+  DT[LC == 57, LANGUAGE := "Tigrinya"]
+  DT[LC == 58, LANGUAGE := "Bosnian"]
+
+  DT[LC == 60, LANGUAGE := "Somali"]
+  DT[LC == 61, LANGUAGE := "Bengali"]
+  DT[LC == 62, LANGUAGE := "Telugu"]
+  DT[LC == 63, LANGUAGE := "Tamil"]
+  DT[LC == 64, LANGUAGE := "Marathi"]
+  DT[LC == 65, LANGUAGE := "Kannada"]
   DT[LC == 66, LANGUAGE := "Other Languages of the Philippines"]
+  DT[LC == 67, LANGUAGE := "Bulgarian"]
+  DT[LC == 68, LANGUAGE := "Kikuyu (Gikuyu)"]
+  DT[LC == 69, LANGUAGE := "Kashmiri"]
+  DT[LC == 70, LANGUAGE := "Swedish"]
+  DT[LC == 71, LANGUAGE := "Zapoteco"]
+  DT[LC == 72, LANGUAGE := "Uzbek"]
   DT[LC == 88, LANGUAGE := "Native American Languages"]
   DT[LC == 99, LANGUAGE := "Other non-English"]
+}
+
+# Remove repeat LC values
+convertLC <- function(DT) {
+  DT[, LC:= as.character(LC)]
+  DT[LC == "01", LC := "1"]
+  DT[LC == "02", LC := "2"]
+  DT[LC == "03", LC := "3"]
+  DT[LC == "04", LC := "4"]
+  DT[LC == "05", LC := "5"]
+  DT[LC == "06", LC := "6"]
+  DT[LC == "07", LC := "7"]
+  DT[LC == "08", LC := "8"]
+  DT[LC == "09", LC := "9"]
 }
