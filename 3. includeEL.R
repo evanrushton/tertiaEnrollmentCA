@@ -63,7 +63,7 @@ DT17 <- DT17[,CDS_CODE:=as.character(CDS_CODE)]
 DT06 <- DT06[,CDS_CODE:=as.character(CDS_CODE)]
 
 setkey(cds, CDS_CODE); setkey(DT00, CDS_CODE); setkey(DT17, CDS_CODE); setkey(DT06, CDS_CODE)
-
+# Merge cds_master with EL data
 DT00 <- cds[DT00]
 DT17 <- cds[DT17]
 DT06 <- cds[DT06]
@@ -87,5 +87,34 @@ length(unique(DTel$CDS_CODE[which(is.na(DTel$LC))]))
 # ================== Write transformed data to csv =============================
 # Write data tables to csv for others to use and avoid above work
 
-write.csv2(DTel, "./Transformed_Data/CA/el.csv", na = "NA")
+write.csv2(DTel, "./Transformed_Data/CA/el.csv", na = "NA", row.names = FALSE)
 
+# ================== Visualize Vars =============================
+
+# Number of entries by year
+DTel %>% 
+  count(YEAR) %>% 
+  ggplot(aes(YEAR, n)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+# Top Languages
+DTel %>% 
+    filter(YEAR == "2016") %>%
+    group_by(LANGUAGE) %>% 
+    summarize(total = sum(TOTAL)) %>% 
+    filter(total > 3200) %>% 
+    arrange(desc(total)) %>% 
+    mutate(LANGUAGE = fct_reorder(LANGUAGE, total)) %>% 
+    ggplot(aes(LANGUAGE, total, na.rm=T)) +
+    geom_col() +
+    coord_flip()    
+
+# Language over the years
+DTel %>% 
+  group_by_at(vars(LANGUAGE, YEAR)) %>% 
+  summarize(total = sum(TOTAL)) %>% 
+  filter(total > 3200) %>% 
+  ggplot(aes(YEAR, total)) +
+  geom_line(aes(colour=LANGUAGE, group=LANGUAGE)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
