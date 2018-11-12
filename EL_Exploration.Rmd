@@ -13,8 +13,37 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tidyverse)
+library(data.table) # To convert dataframes to datatables
+theme_set(theme_light())
 setwd("~/R-projects/enrollmentCA")
+
 EL_enrollments <- fread("./Transformed_Data/CA/el.csv", header=TRUE)
+```
+
+```{r}
+yearLang <- EL_enrollments %>% 
+  filter(!is.na(LANGUAGE)) %>%
+  select(YEAR, LANGUAGE, TOTAL)
+
+lumpEL <- yearLang %>% 
+  filter(!is.na(LANGUAGE)) %>% 
+  mutate(LANGUAGE = fct_lump(LANGUAGE, n = 8, other_level = "Other non-English"))
+
+cdsLang <- EL_enrollments %>% 
+  filter(!is.na(LANGUAGE)) %>%
+  select(CDS_CODE, YEAR, LANGUAGE, TOTAL)
+```
+
+```{r}
+yearLang %>% 
+  count(LANGUAGE, sort = TRUE)
+
+lumpEL %>% 
+  count(LANGUAGE, sort = TRUE)
+
+cdsLang %>% 
+  filter(YEAR == "2011") %>% 
+  length(unique(cdsLang$CDS_CODE))
 ```
 
 # Top English Learner Languages
@@ -22,77 +51,99 @@ EL_enrollments <- fread("./Transformed_Data/CA/el.csv", header=TRUE)
 Looking at the 2017-2018 school year, Spanish is the dominant language with over 1M speakers. Followed by Vietnamese with ~27k, Mandarin with ~22k, and Arabic rounding out the top four at 19k speakers.
   
 ```{r}
-#bars
-DTel %>% 
+#bars TOP 7
+lumpEL %>% 
     filter(YEAR == "2017") %>%
     group_by(LANGUAGE) %>% 
     summarize(total = sum(TOTAL)) %>% 
     mutate(LANGUAGE = fct_reorder(LANGUAGE, total)) %>% 
-    arrange(desc(total)) %>% 
-    head(17) %>% 
-    ggplot(aes(LANGUAGE, total, na.rm=T)) +
-    geom_col() +
-    coord_flip() 
+    arrange(desc(total)) %>%  
+    ggplot(aes(LANGUAGE, total, fill = LANGUAGE, na.rm=T)) +
+    geom_col(show.legend = FALSE) +
+    coord_flip()+
+    labs(title="               English Learners in CA 2017-2018", y="Number of Students")
 
 #table
-DTel %>% 
+yearLang %>% 
     filter(YEAR == "2017") %>%
     group_by(LANGUAGE) %>% 
     summarize(total = sum(TOTAL) )%>% 
     arrange(desc(total)) %>% 
     mutate(LANGUAGE = fct_reorder(LANGUAGE, total)) 
 
-#log-scale bars
-DTel %>% 
-    filter(YEAR == "2017") %>%
+#Non-Spanish Speaker bars
+yearLang %>% 
+    filter(YEAR == "2017" & LANGUAGE != "Spanish") %>%
+    mutate(LANGUAGE = fct_lump(LANGUAGE, n = 16, other_level = "Other non-English")) %>% 
+    filter(LANGUAGE != "Other non-English") %>% 
     group_by(LANGUAGE) %>% 
     summarize(total = sum(TOTAL)) %>% 
-    filter(total > 3200) %>% 
+    #filter(total > 3200) %>% 
     arrange(desc(total)) %>% 
     mutate(LANGUAGE = fct_reorder(LANGUAGE, total)) %>% 
-    ggplot(aes(LANGUAGE, total, na.rm=T)) +
-    scale_y_log10() +
-    geom_col() +
-    coord_flip()
+    ggplot(aes(LANGUAGE, total, fill = LANGUAGE, na.rm=T)) +
+    geom_col(show.legend = FALSE) +
+    coord_flip() +
+    labs(title="               Top 15 Non-Spanish Languages in CA 2017-2018", y="Number of Students")
 ```
 
 # How have Languages Changed over time?
 
 Interestingly, even though the number of Hispanic students continues to rise in our state, the number of Spanish speaking English Learners peaked in the early 2000s () and has dropped to levels seen in the mid 90s. This evidence supports the claim that English is becoming more dominant in the state and native Spanish speakers are on the decline.
 
+
 ```{r}
 #line graph
-DTel %>% 
+yearLang %>% 
   group_by_at(vars(LANGUAGE, YEAR)) %>% 
   summarize(total = sum(TOTAL)) %>% 
   filter(total > 3200) %>% 
   ggplot(aes(YEAR, total)) +
   geom_line(aes(colour=LANGUAGE, group=LANGUAGE)) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  expand_limits(y=0) +
+  ylab("# of speakers per year")
+  
 
-DTel %>% 
+#log-scale lines
+yearLang %>% 
   group_by_at(vars(LANGUAGE, YEAR)) %>% 
   summarize(total = sum(TOTAL)) %>% 
   filter(total > 10000) %>% 
   ggplot(aes(YEAR, total)) +
   geom_line(aes(colour=LANGUAGE, group=LANGUAGE)) +
   scale_y_log10() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  expand_limits(y=0) +
+  ylab("# of speakers per year (log-scale)")
 
-DTel %>% 
+yearLang %>% 
   filter(LANGUAGE == "Spanish" & YEAR == "2004") %>% 
   summarize(total = sum(TOTAL))
   
 ```
   
+# How are the number of ELs distributed across schools?
+
+```{r}
+# boxplot of TOTAL (filter different languages and years)
+
+
+
+
+# could be interesting to look at proportion using yearly enrollment data merge)
+```
+
   
 # Appendix
 ## How have the number of entries changed by year?
 
-There are some inflated years between 2006-2008 around 75k observations and then an oddly low year in 2010 with less than 50k observations during a time when 60k observations is expected. This may skew some results. Can't help but wonder why. May be an addition/subtraction of languages. Possibly opening/closing of schools. Might they have changed the CELDT test? More on that later.
+There are some inflated years between 2006-2008 around 75k observations and then an oddly low year in 2010 with less than 50k observations during a time when 60k observations is expected. This may skew some results. Can't help but wonder why. May be an addition/subtraction of languages. Possibly opening/closing of schools. Might they have changed the CELDT test? Checking number of schools in 2008 (`r length(unique(cdsLang$CDS_CODE[which(cdsLang$YEAR == "2008")]))`), 2009 (`r length(unique(cdsLang$CDS_CODE[which(cdsLang$YEAR == "2009")]))`), 2010 (`r length(unique(cdsLang$CDS_CODE[which(cdsLang$YEAR == "2010")]))`), 2011 (`r length(unique(cdsLang$CDS_CODE[which(cdsLang$YEAR == "2011")]))`), 2012 (`r length(unique(cdsLang$CDS_CODE[which(cdsLang$YEAR == "2012")]))`)
+
+Seems like it could be worth exploring which ~2k schools (~20%) didn't have data for this year.
 
 ```{r}
-DTel %>% 
+yearLang %>% 
   count(YEAR) %>% 
   ggplot(aes(YEAR, n)) +
   geom_point() +
@@ -100,7 +151,7 @@ DTel %>%
   expand_limits(y=0) +
   ylab("# of observations per year")
 
-DTel %>% 
+yearLang %>% 
   count(YEAR) %>% 
   ggplot(aes(YEAR, n)) +
   geom_line(group=1) +
